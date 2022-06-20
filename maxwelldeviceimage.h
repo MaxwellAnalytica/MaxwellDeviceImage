@@ -43,6 +43,7 @@ struct CloneInfo
 	struct {
 		int64_t		size;
 		int64_t		offset;
+		int32_t		bytesOfSector;
 		std::string device_name;
 	} source;
 	struct {
@@ -59,6 +60,8 @@ public:
 
 	int32_t start();
 
+	int32_t explore();
+
 	bool isPrompt() const;
 
 	bool isNull() const;
@@ -69,6 +72,8 @@ public:
 
 protected:
 	int32_t imageCallback();
+
+	int32_t searchTargetDevice(int32_t number, int32_t index = -1);
 
 public:
 	IExplore* explore_;

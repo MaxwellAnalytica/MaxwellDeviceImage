@@ -24,9 +24,14 @@ static void usage()
 {
     std::cout << "Usage:\n";
     //
-    std::cout << "\t1, whole disk: clone <disk_name> <dest_dir>, such as: `clone disk0 G:/images`\n";
-    std::cout << "\t2, whole partition: clone <partition_name> <dest_dir>, such as: `clone disk0s2 G:/images`\n";
-    std::cout << "\t3, whole volume: clone <drive_name> <dest_dir>, such as: `clone D: G:/images`\n";
+    std::cout << "\thelp: help or h\n";
+    std::cout << "\tversion: version or v\n";
+    std::cout << "\tclear screen: clear or cls\n";
+    std::cout << "\texplore devices: ls\n";
+    std::cout << "\tclone disk: clone <disk_name> <dest_dir>, such as: `clone disk0 G:/images`\n";
+    std::cout << "\tclone partition: clone <partition_name> <dest_dir>, such as: `clone disk0s2 G:/images`\n";
+    std::cout << "\tclone volume: clone <drive_name> <dest_dir>, such as: `clone D: G:/images`\n";
+    std::cout << "\tquit: quit or q\n";
     //
     std::cout << "\n";
 }
@@ -51,7 +56,7 @@ int main()
             continue;
         //
         auto options = MaxwellDeviceImage::split(line, ' ');
-        if (options[0] == "quit" || options[0] == "q" || options[0] == "exit")
+        if (options[0] == "quit" || options[0] == "q")
         {
             std::cout << "bye" << std::endl;
             break;
@@ -67,32 +72,26 @@ int main()
             std::cout << "v3.1.8" << std::endl;
             continue;
         }
-        else if (options[0] == "help" || options[0] == "h" || options[0] == "?")
+        else if (options[0] == "help" || options[0] == "h")
         {
             usage();
             continue;
         }
         else if (options[0] == "ls")
         {
-            int32_t size = 8192;
-            char szBuffer[8192] = { 0x00 };
-            bool success = true;
-            app.explore_->explore(szBuffer, &size);
-            try
-            {
-                app.device_object_ = wdjson::parse(std::string(szBuffer));
-                if (!app.device_object_.is_null())
-                    std::cout << app.device_object_.dump(4) << std::endl;
-            }
-            catch (const std::exception&)
-            {
-                success = false;
-            }
-            if (!success)
+            if (app.explore() < 0)
                 std::cout << "error: failed to explore devices" << std::endl;
         }
         else if (options[0] == "clone")
         {
+            if (app.isNull())
+            {
+                if (app.explore() < 0)
+                {
+                    std::cout << "error: failed to explore devices" << std::endl;
+                    return -1;
+                }  
+            }
             app.device_image(options);
         }
         else
