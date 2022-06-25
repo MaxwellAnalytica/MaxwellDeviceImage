@@ -69,7 +69,7 @@ int main()
         }
         else if (options[0] == "version" || options[0] == "v")
         {
-            std::cout << "v3.1.8" << std::endl;
+            std::cout << "v3.2.8" << std::endl;
             continue;
         }
         else if (options[0] == "help" || options[0] == "h")

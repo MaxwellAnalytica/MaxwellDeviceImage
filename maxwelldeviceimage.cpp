@@ -32,6 +32,34 @@ MaxwellDeviceImage::~MaxwellDeviceImage()
 	stop_ = true;
 }
 
+std::vector<std::string> MaxwellDeviceImage::split(const std::string& str, char tag)
+{
+	std::vector<std::string> strlist;
+	std::string subStr;
+	for (size_t i = 0; i < str.length(); i++)
+	{
+		if (tag == str[i]) //完成一次切割
+		{
+			if (!subStr.empty())
+			{
+				strlist.push_back(subStr);
+				subStr.clear();
+			}
+		}
+		else //将i位置的字符放入子串
+		{
+			subStr.push_back(str[i]);
+		}
+	}
+
+	if (!subStr.empty()) //剩余的子串作为最后的子字符串
+	{
+		strlist.push_back(subStr);
+	}
+
+	return strlist;
+}
+
 int32_t MaxwellDeviceImage::start()
 {
 	explore_ = CreateExplorer();
@@ -237,16 +265,16 @@ int32_t MaxwellDeviceImage::imageCallback()
 	const int32_t ConstBufferSize = 4 * 1024 * 1024;
 	char* lpBuffer = new char[ConstBufferSize];
 	const int32_t ConstBytesOfSector = clone_info_.source.bytesOfSector;
-	int64_t offset = clone_info_.source.offset / ConstBytesOfSector;
-	int64_t total = offset + clone_info_.source.size / ConstBytesOfSector;
+	int64_t total = clone_info_.source.size / ConstBytesOfSector;
 	//
 	int32_t io = 0;
+	int64_t offset = 0;
 	int64_t last_offset = offset;
 	auto start = system_clock::now().time_since_epoch();
-	const char szLabel[4] = { 45, 47, 92, 124 };
+	const char szLabel[4] = { 45, 92, 124, 47 }; // - \ | /
 	while (offset < total)
 	{
-		SEEK(source_fd, offset * ConstBytesOfSector, SEEK_SET);
+		SEEK(source_fd, clone_info_.source.offset + offset * ConstBytesOfSector, SEEK_SET);
 		int32_t expect_bytes = (total - offset) * ConstBytesOfSector > ConstBufferSize ? ConstBufferSize : (total - offset) * ConstBytesOfSector;
 		auto real_count = READ(source_fd, lpBuffer, expect_bytes);
 		if (real_count < 0)
@@ -259,13 +287,12 @@ int32_t MaxwellDeviceImage::imageCallback()
 		offset += (real_count / ConstBytesOfSector);
 		auto end = system_clock::now().time_since_epoch();
 		auto elapsed = duration_cast<milliseconds>(end - start).count();
-		if (elapsed > 1000)
+		if (elapsed > 512)
 		{
 			int32_t progress = offset * 100 / total;
 			double rate = double((offset - last_offset) * ConstBytesOfSector * 1000.0 / (1024.0 * 1024.0 * elapsed));
-			//std::cout << "[-] rate:" << rate << std::endl;
 			printf("\33[2K\r");
-			printf("[%c] progress: %2d%%, current I/O rate: %3.2fMB", szLabel[io++%4], progress, rate);
+			printf("[%c] current I/O rate:%3.2fMB, progress:%2d%%", szLabel[io++%4], rate, progress);
 			fflush(stdout);
 			last_offset = offset;
 			start = end;
@@ -280,32 +307,4 @@ int32_t MaxwellDeviceImage::imageCallback()
 	std::cout << std::endl;
 	//
 	return 0;
-}
-
-std::vector<std::string> MaxwellDeviceImage::split(const std::string& str, char tag)
-{
-	std::vector<std::string> strlist;
-	std::string subStr;
-	for (size_t i = 0; i < str.length(); i++)
-	{
-		if (tag == str[i]) //完成一次切割
-		{
-			if (!subStr.empty())
-			{
-				strlist.push_back(subStr);
-				subStr.clear();
-			}
-		}
-		else //将i位置的字符放入子串
-		{
-			subStr.push_back(str[i]);
-		}
-	}
-
-	if (!subStr.empty()) //剩余的子串作为最后的子字符串
-	{
-		strlist.push_back(subStr);
-	}
-
-	return strlist;
 }
