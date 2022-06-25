@@ -16,7 +16,7 @@
 const int32_t ConstSize = 256;
 
 const std::string ConstWdCliTitle = "**********************************************************************\n" \
-                                    "***  Maxwell Command Line Prompt v3.1.8\n" \
+                                    "***  Maxwell Command Line Prompt v3.2.8\n" \
                                     "***  Copyright (c)2015-2021 Maxwell Analytica, All rights reserved\n" \
                                     "**********************************************************************\n";
 
@@ -28,9 +28,9 @@ static void usage()
     std::cout << "\tversion: version or v\n";
     std::cout << "\tclear screen: clear or cls\n";
     std::cout << "\texplore devices: ls\n";
-    std::cout << "\tclone disk: clone <disk_name> <dest_dir>, such as: `clone disk0 G:/images`\n";
-    std::cout << "\tclone partition: clone <partition_name> <dest_dir>, such as: `clone disk0s2 G:/images`\n";
-    std::cout << "\tclone volume: clone <drive_name> <dest_dir>, such as: `clone D: G:/images`\n";
+    std::cout << "\tclone disk: clone <disk_name> <target_dir>, such as: `clone disk0 G:/images`\n";
+    std::cout << "\tclone partition: clone <partition_name> <target_dir>, such as: `clone disk0s2 G:/images`\n";
+    std::cout << "\tclone volume: clone <drive_name> <target_dir>, such as: `clone D: G:/images`\n";
     std::cout << "\tquit: quit or q\n";
     //
     std::cout << "\n";

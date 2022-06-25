@@ -54,9 +54,32 @@ int32_t MaxwellDeviceImage::explore()
 	{
 		device_object_ = wdjson::parse(std::string(szBuffer));
 		if (!device_object_.is_null())
-			std::cout << device_object_.dump(4) << std::endl;
+		{
+			int32_t diskIndex = 0;
+			//std::cout << device_object_.dump(4) << std::endl;
+			auto deviceArray = device_object_.at("DeviceArray").get<wdjson::array_t>();
+			for (auto& device : deviceArray)
+			{
+				auto model = device.at("Model").get<std::string>();
+				auto number = device.at("Index").get<int32_t>();
+				auto size = device.at("Size").get<int64_t>();
+				auto storage = device.at("StorageMedia").get<int32_t>();
+				printf("disk%d\t%s\t%s\t%0.2fGB\n", number, model.c_str(), (storage == 3 ? "HDD" : "SSD"), double(size * 1.0 / (1024.0 * 1024.0 * 1024.0)));
+				auto volumeArray = device.at("VolumeArray").get<wdjson::array_t>();
+				for (auto& volume : volumeArray)
+				{
+					auto index = volume.at("Index").get<int32_t>();
+					auto letter = volume.at("DriveLetter").get<std::string>();
+					auto label = volume.at("Label").get<std::string>();
+					auto size = volume.at("Size").get<int64_t>();
+					printf("\tdisk%ds%d\t\t%s(%s)\t\t%0.2fGB\n", number, index, label.c_str(), (letter.length() > 0 ? letter.c_str() : "*"), double(size * 1.0 / (1024.0 * 1024.0 * 1024.0)));
+				}
+				//
+				std::cout << std::endl;
+			}
+		}
 	}
-	catch (const std::exception&)
+	catch (const std::exception& e)
 	{
 		return -1;
 	}
@@ -132,7 +155,7 @@ void MaxwellDeviceImage::device_image(std::vector<std::string>& options)
 		_ULARGE_INTEGER lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes;
 		if (!GetDiskFreeSpaceEx(drive.c_str(), &lpFreeBytesAvailableToCaller, &lpTotalNumberOfBytes, &lpTotalNumberOfFreeBytes))
 		{
-			std::cout << "error: " << clone_info_.target.dest_dir << " open failed" << std::endl;
+			std::cout << "error: " << clone_info_.target.dest_dir << ": open failed(" << GetLastError() << ")" << std::endl;
 			return;
 		}
 		//
@@ -172,13 +195,14 @@ void MaxwellDeviceImage::device_image(std::vector<std::string>& options)
 		clone_info_.type = ImageType::IMG_Volume;
 		std::wstring drive = WdUtil::s2ws(device_name);
 		_ULARGE_INTEGER lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes;
-		if (GetDiskFreeSpaceEx(drive.c_str(), &lpFreeBytesAvailableToCaller, &lpTotalNumberOfBytes, &lpTotalNumberOfFreeBytes))
+		if (!GetDiskFreeSpaceEx(drive.c_str(), &lpFreeBytesAvailableToCaller, &lpTotalNumberOfBytes, &lpTotalNumberOfFreeBytes))
 		{
-			std::cout << "error: " << device_name << ": open failed" << std::endl;
+			std::cout << "error: " << device_name << ": open failed(" << GetLastError() << ")" << std::endl;
 			return;
 		}
 		clone_info_.source.offset = 0;
-		clone_info_.source.device_name = device_name;
+		clone_info_.source.bytesOfSector = 512;
+		clone_info_.source.device_name = "\\\\.\\" + device_name;
 		clone_info_.source.size = (int64_t)lpTotalNumberOfBytes.QuadPart;
 	}
 	// ÅÐ¶Ï¿Õ¼äÊÇ·ñ×ã¹»
