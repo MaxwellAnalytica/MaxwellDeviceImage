@@ -144,7 +144,6 @@ void MaxwellDeviceImage::device_image(std::vector<std::string>& options)
 		return;
 	}
 	//
-	prompt_ = true;
 	std::string device_name = options[1];
 	std::transform(device_name.begin(), device_name.end(), device_name.begin(), ::tolower);
 	if (memcmp(device_name.c_str(), "disk", 4) == 0)
@@ -200,40 +199,50 @@ int32_t MaxwellDeviceImage::imageCallback()
 	int32_t target_fd = OPEN(target_device.c_str(), IOFlag::WD_WRONLY | IOFlag::WD_CREAT | IOFlag::WD_BINARY, 1);
 	if (target_fd < 0)
 	{
+		std::cout << "failed to open target image, error: " << strerror(errno) << std::endl;
 		return -1;
 	}
 	std::string source_device = clone_info_.source.device_name;
 	int32_t source_fd = OPEN(source_device.c_str(), IOFlag::WD_RDONLY | IOFlag::WD_BINARY, 1);
 	if (source_fd < 0)
 	{
+		std::cout << "failed to open source device, error: " << strerror(errno) << std::endl;
 		return -1;
 	}
+	//
 	const int32_t ConstBufferSize = 4 * 1024 * 1024;
 	char* lpBuffer = new char[ConstBufferSize];
-	int32_t ConstBytesOfSector = clone_info_.source.bytesOfSector;
+	const int32_t ConstBytesOfSector = clone_info_.source.bytesOfSector;
 	int64_t offset = clone_info_.source.offset / ConstBytesOfSector;
 	int64_t total = offset + clone_info_.source.size / ConstBytesOfSector;
 	//
+	int32_t io = 0;
 	int64_t last_offset = offset;
 	auto start = system_clock::now().time_since_epoch();
+	const char szLabel[4] = { 45, 47, 92, 124 };
 	while (offset < total)
 	{
 		SEEK(source_fd, offset * ConstBytesOfSector, SEEK_SET);
-		auto count = READ(source_fd, lpBuffer, ConstBufferSize);
-		if (count < 0)
+		int32_t expect_bytes = (total - offset) * ConstBytesOfSector > ConstBufferSize ? ConstBufferSize : (total - offset) * ConstBytesOfSector;
+		auto real_count = READ(source_fd, lpBuffer, expect_bytes);
+		if (real_count < 0)
 		{
 			offset += (ConstBufferSize / ConstBytesOfSector);
 			continue;
 		}
 		//
-		WRITE(target_fd, lpBuffer, count);
-		offset += (count / ConstBytesOfSector);
+		WRITE(target_fd, lpBuffer, real_count);
+		offset += (real_count / ConstBytesOfSector);
 		auto end = system_clock::now().time_since_epoch();
 		auto elapsed = duration_cast<milliseconds>(end - start).count();
 		if (elapsed > 1000)
 		{
+			int32_t progress = offset * 100 / total;
 			double rate = double((offset - last_offset) * ConstBytesOfSector * 1000.0 / (1024.0 * 1024.0 * elapsed));
-			std::cout << "[-] rate:" << rate << std::endl;
+			//std::cout << "[-] rate:" << rate << std::endl;
+			printf("\33[2K\r");
+			printf("[%c] progress: %2d%%, current I/O rate: %3.2fMB", szLabel[io++%4], progress, rate);
+			fflush(stdout);
 			last_offset = offset;
 			start = end;
 		}
@@ -243,6 +252,8 @@ int32_t MaxwellDeviceImage::imageCallback()
 	//
 	CLOSE(target_fd);
 	CLOSE(source_fd);
+	//
+	std::cout << std::endl;
 	//
 	return 0;
 }
