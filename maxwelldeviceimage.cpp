@@ -38,7 +38,7 @@ std::vector<std::string> MaxwellDeviceImage::split(const std::string& str, char 
 	std::string subStr;
 	for (size_t i = 0; i < str.length(); i++)
 	{
-		if (tag == str[i]) //完成一次切割
+		if (tag == str[i])
 		{
 			if (!subStr.empty())
 			{
@@ -46,13 +46,13 @@ std::vector<std::string> MaxwellDeviceImage::split(const std::string& str, char 
 				subStr.clear();
 			}
 		}
-		else //将i位置的字符放入子串
+		else
 		{
 			subStr.push_back(str[i]);
 		}
 	}
 
-	if (!subStr.empty()) //剩余的子串作为最后的子字符串
+	if (!subStr.empty())
 	{
 		strlist.push_back(subStr);
 	}
@@ -84,7 +84,6 @@ int32_t MaxwellDeviceImage::explore()
 		if (!device_object_.is_null())
 		{
 			int32_t diskIndex = 0;
-			//std::cout << device_object_.dump(4) << std::endl;
 			auto deviceArray = device_object_.at("DeviceArray").get<wdjson::array_t>();
 			for (auto& device : deviceArray)
 			{
@@ -233,7 +232,7 @@ void MaxwellDeviceImage::device_image(std::vector<std::string>& options)
 		clone_info_.source.device_name = "\\\\.\\" + device_name;
 		clone_info_.source.size = (int64_t)lpTotalNumberOfBytes.QuadPart;
 	}
-	// 判断空间是否足够
+	//
 	if (clone_info_.source.size > clone_info_.target.availabled)
 	{
 		std::cout << "error: " << clone_info_.target.dest_dir << " size not enough, at least " << clone_info_.source.size/(1024*1024*1024) << "(GB)" << std::endl;
@@ -271,7 +270,7 @@ int32_t MaxwellDeviceImage::imageCallback()
 	int64_t offset = 0;
 	int64_t last_offset = offset;
 	auto start = system_clock::now().time_since_epoch();
-	const char szLabel[4] = { 45, 92, 124, 47 }; // - \ | /
+	const char szLabel[4] = { 45, 92, 124, 47 };
 	while (offset < total)
 	{
 		SEEK(source_fd, clone_info_.source.offset + offset * ConstBytesOfSector, SEEK_SET);
@@ -292,7 +291,7 @@ int32_t MaxwellDeviceImage::imageCallback()
 			int32_t progress = offset * 100 / total;
 			double rate = double((offset - last_offset) * ConstBytesOfSector * 1000.0 / (1024.0 * 1024.0 * elapsed));
 			printf("\33[2K\r");
-			printf("[%c] current I/O rate:%3.2fMB, progress:%2d%%", szLabel[io++%4], rate, progress);
+			printf("[%c] current I/O rate:%3.2fMB, progress:%02d%%", szLabel[io++%4], rate, progress);
 			fflush(stdout);
 			last_offset = offset;
 			start = end;
